@@ -51,7 +51,7 @@
 </script>
 
 <div class="card bg-white shadow rounded-lg overflow-hidden p-6">
-    <h2 class="text-lg font-semibold mb-4">Top Referral</h2>
+    <h2 class="text-lg font-semibold mb-4">Number of projects</h2>
     <svg id="pie-chart"></svg>
     <div class="legend">
         {#each filteredEmployees as employee, i}
