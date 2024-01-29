@@ -1,0 +1,61 @@
+version: "3.6"
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d # Mount init-scripts directory
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: defaultdb
+
+  cockroach:
+    image: cockroachdb/cockroach:v22.2.1
+    # starts an _insecure_, single-node CockroachDB intended for non-production uses only
+    # follow the CockroachDB Cloud Guide to connect to a production CockroachDB cluster
+    command:
+      - start-single-node
+      - --insecure
+      - --accept-sql-without-tls
+    ports:
+      - "26257:26257"
+    environment:
+      COCKROACH_USER: "root"
+      COCKROACH_DATABASE: "hasura"
+    volumes:
+      - "${PWD}/cockroach-data:/cockroach/cockroach-data"
+
+  graphql-engine:
+    image: hasura/graphql-engine:v2.36.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "postgres"
+      - "cockroach"
+    restart: always
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/defaultdb
+
+      #      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/defaultdb
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      #      HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+      HASURA_GRAPHQL_METADATA_DIR: /hasura-metadata # Set the metadata directory
+    volumes:
+      - ./hasura-metadata:/hasura-metadata # Mount the hasura-metadata directory
+
+  app:
+    container_name: svelte-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+volumes:
+  postgres-data:
+  cockroach-data:
